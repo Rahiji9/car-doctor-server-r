@@ -28,7 +28,7 @@ async function run() {
     await client.connect();
 
     const serviceCollection = client.db("carDoctor").collection("services");
-    const bokkingCollection=client.db('carDoctor').collection('bookings') 
+    const bokkingCollection = client.db("carDoctor").collection("bookings");
 
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find();
@@ -42,23 +42,54 @@ async function run() {
 
       const options = {
         // Include only the `title` and `imdb` fields in the returned document
-        projection: { title: 1, price: 1 ,service_id:1},
+        projection: { title: 1, price: 1, service_id: 1, img: 1 },
       };
 
-      const result = await serviceCollection.findOne(query,options);
+      const result = await serviceCollection.findOne(query, options);
       res.send(result);
     });
 
-   //BOOKINGS
+    //BOOKINGS
 
-   app.post('/bookings',async(req,res)=>{
-    const booking =req.body;
-    console.log(booking);
-    const result=await bokkingCollection.insertOne(booking);
-    res.send(result);
-   });
+    app.get("/bookings", async (req, res) => {
+      console.log(req.query.email);
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
 
+      const result = await bokkingCollection.find(query).toArray();
+      res.send(result);
+    });
 
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      console.log(booking);
+      const result = await bokkingCollection.insertOne(booking);
+      res.send(result);
+    });
+
+    app.patch("/bookings/:id", async (req, res) => {
+      const id=req.params.id;
+      const filter={_id:new ObjectId(id)};
+      const updatedBooking = req.body;
+      console.log(updatedBooking);
+      const updatedoc={
+        $set:{
+          status:updatedBooking.status
+        }
+      }
+      const result =await bokkingCollection.updateOne(filter,updatedoc)
+      res.send (result);
+
+    });
+
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bokkingCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
